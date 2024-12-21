@@ -1,7 +1,8 @@
-#include <iostream>;
+#include <iostream>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
+#include <stb_image.h>
 
 int main()
 {
@@ -26,6 +27,13 @@ int main()
 	}
 
 	glfwMakeContextCurrent(window);
+
+	// load openGL extension functions with GLAD
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	{
+		std::cerr << "Failed to initialize GLAD!" << std::endl;
+		return -1;
+	}
 
 	// main loop
 	while (!glfwWindowShouldClose(window))
