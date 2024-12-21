@@ -2,7 +2,9 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
-#include <stb_image.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 int main()
 {
@@ -35,6 +37,10 @@ int main()
 		return -1;
 	}
 
+	// load map
+	int width, height, nChannels;
+	unsigned char *data = stbi_load("images/heightmap_sample.png", &width, &height, &nChannels, 0);
+
 	// main loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -49,6 +55,6 @@ int main()
 
 	glfwTerminate();
 
-	std::cout << "Hello there";
+	std::cout << "width: " << width;
 	return 0;
 }
