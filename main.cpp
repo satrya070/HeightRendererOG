@@ -5,6 +5,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include <vector>
 
 int main()
 {
@@ -38,8 +39,34 @@ int main()
 	}
 
 	// load map
-	int width, height, nChannels;
-	unsigned char *data = stbi_load("images/heightmap_sample.png", &width, &height, &nChannels, 0);
+	int cols, rows, nChannels;
+	unsigned char *data = stbi_load("images/heightmap_sample.png", &rows, &cols, &nChannels, 0);
+
+	// load all vertices with heighvalue pixels
+	std::vector<float> vertices;
+	float yScale = 0.25f, yShift = 16.0f;
+	for (int r = 0; r < rows; r++)
+	{
+		for (int c = 0; c < cols; c++)
+		{
+			// memory index of the height pixel
+			unsigned char* pixelOffset = data + (c + rows * r) * nChannels;
+			// its value
+			if (pixelOffset != nullptr)
+			{
+				std::cout << "pixelOffset: " << sizeof(pixelOffset);
+				unsigned char height = pixelOffset[0];
+
+				// sets origin to middel of (rows, cols)
+				vertices.push_back(-rows / 2.0f + r);
+				vertices.push_back(height * yScale - yShift);
+				vertices.push_back(-cols / 2.0 + c);
+			}
+		}
+	}
+
+	//printf("%d", data);
+	std::cout << "pointer: " << static_cast<int>(data[7]) << nChannels << std::endl ;
 
 	// main loop
 	while (!glfwWindowShouldClose(window))
@@ -55,6 +82,6 @@ int main()
 
 	glfwTerminate();
 
-	std::cout << "width: " << width;
+	//std::cout << "pointer: " << data;
 	return 0;
 }
