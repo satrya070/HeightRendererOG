@@ -54,7 +54,6 @@ int main()
 			// its value
 			if (pixelOffset != nullptr)
 			{
-				std::cout << "pixelOffset: " << sizeof(pixelOffset);
 				unsigned char height = pixelOffset[0];
 
 				// sets origin to middel of (rows, cols)
@@ -64,9 +63,25 @@ int main()
 			}
 		}
 	}
+	stbi_image_free(data);
 
-	//printf("%d", data);
-	std::cout << "pointer: " << static_cast<int>(data[7]) << nChannels << std::endl ;
+	// EBO indices
+	std::vector<unsigned int> indices;
+	for (unsigned int r = 0; r < rows - 1; r++)
+	{
+		for (unsigned int c = 0; c < cols; c++)
+		{
+			// go back between top 
+			for (unsigned int k = 0; k < 2; k++)
+			{
+				// picks the top c, then the one below
+				indices.push_back(c + rows * (r + k));
+			}
+		}
+	}
+
+	const unsigned int N_STRIPS = rows - 1;
+	const unsigned int N_VERTS_PER_STRIPS = rows * 2;
 
 	// main loop
 	while (!glfwWindowShouldClose(window))
