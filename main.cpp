@@ -40,7 +40,7 @@ int main()
 
 	// load map
 	int cols, rows, nChannels;
-	unsigned char *data = stbi_load("images/heightmap_sample.png", &rows, &cols, &nChannels, 0);
+	unsigned char *data = stbi_load("images/heightmap_sample.png", &cols, &rows, &nChannels, 0);
 
 	// load all vertices with heighvalue pixels
 	std::vector<float> vertices;
@@ -54,7 +54,7 @@ int main()
 			// its value
 			if (pixelOffset != nullptr)
 			{
-				unsigned char height = pixelOffset[0];
+				unsigned char height = *pixelOffset;
 
 				// sets origin to middel of (rows, cols)
 				vertices.push_back(-rows / 2.0f + r);
@@ -79,20 +79,48 @@ int main()
 			}
 		}
 	}
+	std::cout << "loaded " << indices.size() << " indices" << std::endl;
+
+	// VAO
+	GLuint terrainVAO, terrainVBO, terrainEBO;
+	glGenVertexArrays(1, &terrainVAO);
+	glBindVertexArray(terrainVAO);
+	glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(float), &vertices[0]);
+	glBindVertexArray(0);
+
+	glGenBuffers(1, &terrainVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
+
+	glGenBuffers(1, &terrainEBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
 	const unsigned int N_STRIPS = rows - 1;
-	const unsigned int N_VERTS_PER_STRIPS = rows * 2;
+	const unsigned int N_VERTS_PER_STRIP = rows * 2;
 
 	// main loop
 	while (!glfwWindowShouldClose(window))
 	{
 		// clear buffers
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// swap
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
+		// render cube
+		glBindVertexArray(terrainVAO);
+		for (unsigned int strip = 0; strip << N_STRIPS; strip++)
+		{
+			glDrawElements(
+				GL_TRIANGLE_STRIP,
+				N_VERTS_PER_STRIP,
+				GL_UNSIGNED_INT,
+				(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP * strip)
+			);
+		}
 	}
 
 	glfwTerminate();
