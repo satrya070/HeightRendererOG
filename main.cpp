@@ -22,8 +22,7 @@ Camera camera(
 	glm::vec3(67.f, 627.f, 169.f),
 	glm::vec3(0.0f, 1.0f, 0.0f),
 	-128.1f,
-	-42.4f
-);
+	-42.4f);
 float lastX = WIDTH / 2.0f;
 float lastY = HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -39,6 +38,8 @@ int main()
 		std::cerr << "Failed to initialize GLFW!" << std::endl;
 		return -1;
 	}
+
+	camera.MovementSpeed = 100.5f;
 
 	// set openGL version: 4.0 core
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -136,10 +137,10 @@ int main()
 	glBindVertexArray(0);
 
 	/* ------ Triangle VAO ---------- */
-	/*float triangleVertices[] = {
+	float triangleVertices[] = {
 		-0.5, -0.5, 0.f,
 		0.5, -0.5, 0.f,
-		-0.5, 0.5, 0.f
+		-0.5, 105.f, 0.f
 	};
 	unsigned int triangleVAO, triangleVBO;
 	glGenVertexArrays(1, &triangleVAO);
@@ -151,7 +152,7 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, triangleVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
 
-	glBindVertexArray(0);*/
+	glBindVertexArray(0);
 	/* ------------------------------ */
 
 	const unsigned int N_STRIPS = rows - 1;
@@ -188,7 +189,8 @@ int main()
 		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
 
 		
-		for (int strip = 0; strip < N_STRIPS; strip++)
+		//for (int strip = 0; strip < N_STRIPS; strip++)
+		for (int strip = 0; strip < 500; strip++)
 		{
 			glDrawElements(
 				GL_TRIANGLE_STRIP,
@@ -197,16 +199,11 @@ int main()
 				(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP * strip)
 			);
 		}
-		
 
-		/*glDrawElements(
-			GL_TRIANGLE_STRIP,
-			N_VERTS_PER_STRIP,
-			GL_UNSIGNED_INT,
-			(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP)
-			//0
-			//(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP * strip)
-		);*/
+		/*glBindVertexArray(triangleVAO);
+		glDrawArrays(
+			GL_TRIANGLES,
+		)*/
 
 		// swap
 		glfwSwapBuffers(window);
@@ -238,7 +235,7 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 
-	std::cout << camera.Position.x << camera.Yaw << std::endl;
+	//std::cout << camera.Position.x << camera.Yaw << std::endl;
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
