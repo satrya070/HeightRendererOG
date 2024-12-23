@@ -138,19 +138,20 @@ int main()
 
 	/* ------ Triangle VAO ---------- */
 	float triangleVertices[] = {
-		-0.5, -0.5, 0.f,
-		0.5, -0.5, 0.f,
-		-0.5, 105.f, 0.f
+		-500.f, -500.f, 0.f,
+		500.f, -500.f, 0.f,
+		-500.f, 500.f, 0.f
 	};
 	unsigned int triangleVAO, triangleVBO;
 	glGenVertexArrays(1, &triangleVAO);
 	glBindVertexArray(triangleVAO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
 
 	glGenBuffers(1, &triangleVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, triangleVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
 	glBindVertexArray(0);
 	/* ------------------------------ */
@@ -186,7 +187,6 @@ int main()
 
 		// render cube
 		glBindVertexArray(terrainVAO);
-		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
 
 		
 		//for (int strip = 0; strip < N_STRIPS; strip++)
@@ -200,10 +200,8 @@ int main()
 			);
 		}
 
-		/*glBindVertexArray(triangleVAO);
-		glDrawArrays(
-			GL_TRIANGLES,
-		)*/
+		glBindVertexArray(triangleVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		// swap
 		glfwSwapBuffers(window);
