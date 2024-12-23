@@ -88,11 +88,11 @@ int main()
 			// its value
 			if (pixelOffset != nullptr)
 			{
-				unsigned char height = *pixelOffset;
+				unsigned char heightVal = pixelOffset[0];
 
 				// sets origin to middel of (rows, cols)
-				vertices.push_back(-rows / 2.0f + (r * rows / (float)rows)); // X
-				vertices.push_back((int)height * yScale - yShift); // Y
+				vertices.push_back(-rows / 2.0f + (rows * r / (float)rows)); // X
+				vertices.push_back((int)heightVal * yScale - yShift); // Y
 				vertices.push_back(-cols / 2.0 + (c * cols / (float)cols)); // Z
 			}
 		}
@@ -121,16 +121,38 @@ int main()
 	GLuint terrainVAO, terrainVBO, terrainEBO;
 	glGenVertexArrays(1, &terrainVAO);
 	glBindVertexArray(terrainVAO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glBindVertexArray(0);
 
 	glGenBuffers(1, &terrainVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
 	glGenBuffers(1, &terrainEBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+
+	glBindVertexArray(0);
+
+	/* ------ Triangle VAO ---------- */
+	/*float triangleVertices[] = {
+		-0.5, -0.5, 0.f,
+		0.5, -0.5, 0.f,
+		-0.5, 0.5, 0.f
+	};
+	unsigned int triangleVAO, triangleVBO;
+	glGenVertexArrays(1, &triangleVAO);
+	glBindVertexArray(triangleVAO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glGenBuffers(1, &triangleVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, triangleVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
+
+	glBindVertexArray(0);*/
+	/* ------------------------------ */
 
 	const unsigned int N_STRIPS = rows - 1;
 	const unsigned int N_VERTS_PER_STRIP = cols * 2;
@@ -163,6 +185,9 @@ int main()
 
 		// render cube
 		glBindVertexArray(terrainVAO);
+		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
+
+		
 		for (int strip = 0; strip < N_STRIPS; strip++)
 		{
 			glDrawElements(
@@ -172,6 +197,16 @@ int main()
 				(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP * strip)
 			);
 		}
+		
+
+		/*glDrawElements(
+			GL_TRIANGLE_STRIP,
+			N_VERTS_PER_STRIP,
+			GL_UNSIGNED_INT,
+			(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP)
+			//0
+			//(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP * strip)
+		);*/
 
 		// swap
 		glfwSwapBuffers(window);
@@ -202,6 +237,8 @@ void processInput(GLFWwindow* window)
 		camera.ProcessKeyboard(LEFT, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
+
+	std::cout << camera.Position.x << camera.Yaw << std::endl;
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
