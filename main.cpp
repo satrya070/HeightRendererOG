@@ -8,6 +8,7 @@
 #include <vector>
 #include "Shader.h"
 #include "camera.h"
+#include <algorithm>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 //void key_callback(GLFWwindow* window, int key, int scancode, int action, int modifiers);
@@ -39,7 +40,8 @@ int main()
 		return -1;
 	}
 
-	camera.MovementSpeed = 100.5f;
+	camera.MovementSpeed = 140.5f;
+	stbi_set_flip_vertically_on_load(1);
 
 	// set openGL version: 4.0 core
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -69,17 +71,18 @@ int main()
 	}
 
 	glEnable(GL_DEPTH_TEST);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	// 
 	Shader HeightShader("vertex_shader.txt", "fragment_shader.txt");
 
 	// load map
 	int cols, rows, nChannels;
-	unsigned char *data = stbi_load("images/heightmap_sample.png", &cols, &rows, &nChannels, 0);
+	unsigned char *data = stbi_load("images/the_hague_heightmap.png", &cols, &rows, &nChannels, 0);
 
 	// load all vertices with heighvalue pixels
 	std::vector<float> vertices;
-	float yScale = 0.25f, yShift = 16.0f;
+	float yScale = 64.0f / 256.f, yShift = 16.0f;
 	for (int r = 0; r < rows; r++)
 	{
 		for (int c = 0; c < cols; c++)
@@ -93,8 +96,9 @@ int main()
 
 				// sets origin to middel of (rows, cols)
 				vertices.push_back(-rows / 2.0f + (rows * r / (float)rows)); // X
-				vertices.push_back((int)heightVal * yScale - yShift); // Y
-				vertices.push_back(-cols / 2.0 + (c * cols / (float)cols)); // Z
+				//vertices.push_back((int)heightVal * yScale - yShift); // Y
+				vertices.push_back(heightVal);
+				vertices.push_back(-cols / 2.0f + (cols * c / (float)cols)); // Z
 			}
 		}
 	}
@@ -161,6 +165,12 @@ int main()
 
 	std::cout << "number of strips: " << N_STRIPS << std::endl;
 	std::cout << "number of triangles: " << N_VERTS_PER_STRIP << std::endl;
+	
+	auto [minIt, maxIt] = std::minmax_element(vertices.begin(), vertices.end());
+	float minF = *minIt;
+	float maxF = *maxIt;
+	std::cout << "min value: " << minF << ", max value: " << maxF << std::endl;
+
 
 	// main loop
 	while (!glfwWindowShouldClose(window))
@@ -189,8 +199,8 @@ int main()
 		glBindVertexArray(terrainVAO);
 
 		
-		//for (int strip = 0; strip < N_STRIPS; strip++)
-		for (int strip = 0; strip < 500; strip++)
+		for (int strip = 0; strip < N_STRIPS; strip++)
+		//for (int strip = 0; strip < 500; strip++)
 		{
 			glDrawElements(
 				GL_TRIANGLE_STRIP,
