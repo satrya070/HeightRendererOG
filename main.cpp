@@ -1,3 +1,7 @@
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #include <iostream>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -9,6 +13,7 @@
 #include "Shader.h"
 #include "camera.h"
 #include <algorithm>
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 //void key_callback(GLFWwindow* window, int key, int scancode, int action, int modifiers);
@@ -171,6 +176,15 @@ int main()
 	float maxF = *maxIt;
 	std::cout << "min value: " << minF << ", max value: " << maxF << std::endl;
 
+	//-----init IMGUI------------
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	//
+	ImGui::StyleColorsDark();
+	// bind renderer
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
 
 	// main loop
 	while (!glfwWindowShouldClose(window))
@@ -213,9 +227,22 @@ int main()
 		glBindVertexArray(triangleVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
+		// Start the Dear ImGui frame
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		ImGui::Begin("Hello, ImGui!");
+		ImGui::Text("This is a demo window.");
+		if (ImGui::Button("Click Me"))
+			printf("Button clicked!\n");
+		ImGui::End();
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 		// swap
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
 	}
 
 	// delete all used sources
