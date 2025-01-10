@@ -21,8 +21,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
-const unsigned int WIDTH = 800;
-const unsigned int HEIGHT = 600;
+const unsigned int WIDTH = 1600;
+const unsigned int HEIGHT = 1200;
 
 Camera camera(
 	glm::vec3(67.f, 627.f, 169.f),
@@ -36,6 +36,9 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+bool glfw_cursor_normal = false;
+static float CameraMovementSpeed = 150.f;
+
 int main()
 {
 	// init glfw
@@ -45,7 +48,7 @@ int main()
 		return -1;
 	}
 
-	camera.MovementSpeed = 140.5f;
+	camera.MovementSpeed = CameraMovementSpeed;
 	stbi_set_flip_vertically_on_load(1);
 
 	// set openGL version: 4.0 core
@@ -214,7 +217,6 @@ int main()
 
 		
 		for (int strip = 0; strip < N_STRIPS; strip++)
-		//for (int strip = 0; strip < 500; strip++)
 		{
 			glDrawElements(
 				GL_TRIANGLE_STRIP,
@@ -231,10 +233,15 @@ int main()
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-		ImGui::Begin("Hello, ImGui!");
+		ImGui::Begin("Settings");
 		ImGui::Text("This is a demo window.");
 		if (ImGui::Button("Click Me"))
-			printf("Button clicked!\n");
+			printf("Camera speed: %g!\n", camera.MovementSpeed);
+
+		ImGui::SliderFloat("Camera Movement Speed", &CameraMovementSpeed, 100.f, 200.f);
+		if (camera.MovementSpeed != CameraMovementSpeed)
+			camera.MovementSpeed = CameraMovementSpeed;
+
 		ImGui::End();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -261,6 +268,18 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+		if (!glfw_cursor_normal) {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			glfw_cursor_normal = true;
+		}
+		else {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			glfw_cursor_normal = false;
+		}
+
+		//glfwGetInputMode
+
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		camera.ProcessKeyboard(FORWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -270,7 +289,6 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 
-	//std::cout << camera.Position.x << camera.Yaw << std::endl;
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
