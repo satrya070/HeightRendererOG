@@ -86,7 +86,7 @@ int main()
 
 	// load map
 	int cols, rows, nChannels;
-	unsigned char *data = stbi_load("images/the_hague_heightmap.png", &cols, &rows, &nChannels, 0);
+	unsigned char *data = stbi_load("images/heightmap_wiki.png", &cols, &rows, &nChannels, 0);
 
 	// load all vertices with heighvalue pixels
 	std::vector<float> vertices;
