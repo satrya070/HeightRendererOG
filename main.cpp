@@ -23,6 +23,7 @@ void processInput(GLFWwindow* window);
 
 const unsigned int WIDTH = 1600;
 const unsigned int HEIGHT = 1200;
+const unsigned int NUM_PATCH_PTS = 4;
 
 Camera camera(
 	glm::vec3(67.f, 627.f, 169.f),
@@ -81,16 +82,19 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	// 
-	Shader HeightShader("vertex_shader.txt", "fragment_shader.txt");
+	// load shader text files
+	Shader HeightShader(
+		"vertex_shader.txt", "fragment_shader.txt", "tesselation_control_shader.txt", "tesselation_evaluation_shader.txt"
+	);
 
 	// load map
-	int cols, rows, nChannels;
-	unsigned char *data = stbi_load("images/heightmap_wiki.png", &cols, &rows, &nChannels, 0);
+	//int cols, rows, nChannels;
+	int width, height, channels;
+	unsigned char *data = stbi_load("images/heightmap_wiki.png", &width, &height, &channels, 0);
 
 	// load all vertices with heighvalue pixels
 	std::vector<float> vertices;
-	float yScale = 64.0f / 256.f, yShift = 16.0f;
+	/*float yScale = 64.0f / 256.f, yShift = 16.0f;
 	for (int r = 0; r < rows; r++)
 	{
 		for (int c = 0; c < cols; c++)
@@ -129,6 +133,37 @@ int main()
 		}
 	}
 	std::cout << "loaded " << indices.size() << " indices" << std::endl;
+	*/
+
+	// generate all coordinates for all patches
+	unsigned int rez = 20;
+	for (unsigned i = 0; i < rez; i++)
+	{
+		for (unsigned int j = 0; j < rez; j++)
+		{
+			// patch top left
+			vertices.push_back(-width / 2.0f + width * i / (float)rez); // v.x
+			vertices.push_back(0.0f); // v.y
+			vertices.push_back(-height / 2.0f + height * j / (float)rez); // v.z
+
+			// patch top right
+			vertices.push_back(-width / 2.0f + width * (i+1) / (float)rez); // v.x
+			vertices.push_back(0.0f); // v.y
+			vertices.push_back(-height / 2.0f + height * j / (float)rez); // v.z
+
+			// patch bottom left
+			vertices.push_back(-width / 2.0f + width * i / (float)rez); // v.x
+			vertices.push_back(0.0f); // v.y
+			vertices.push_back(-height / 2.0f + height * (j+1) / (float)rez); // v.z
+
+			// patch bottom right
+			vertices.push_back(-width / 2.0f + width * (i+1) / (float)rez); // v.x
+			vertices.push_back(0.0f); // v.y
+			vertices.push_back(-height / 2.0f + height * (j+1) / (float)rez); // v.z
+		}
+	}
+	std::cout << "Loaded: " << rez * rez << " patches of 4 control points each" << std::endl;
+	std::cout << "Processing " << rez * rez * 4 << " vertices in the vertex shader" << ::std::endl;
 
 	// VAO
 	GLuint terrainVAO, terrainVBO, terrainEBO;
@@ -142,14 +177,16 @@ int main()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	glGenBuffers(1, &terrainEBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+	glPatchParameteri(GL_PATCH_VERTICES, NUM_PATCH_PTS);
+
+	//glGenBuffers(1, &terrainEBO);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
 	glBindVertexArray(0);
 
 	/* ------ Triangle VAO ---------- */
-	float triangleVertices[] = {
+	/*float triangleVertices[] = {
 		-500.f, -500.f, 0.f,
 		500.f, -500.f, 0.f,
 		-500.f, 500.f, 0.f
@@ -165,9 +202,10 @@ int main()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	glBindVertexArray(0);
+	glBindVertexArray(0);*/
 	/* ------------------------------ */
 
+	/*
 	const unsigned int N_STRIPS = rows - 1;
 	const unsigned int N_VERTS_PER_STRIP = cols * 2;
 
@@ -178,6 +216,7 @@ int main()
 	float minF = *minIt;
 	float maxF = *maxIt;
 	std::cout << "min value: " << minF << ", max value: " << maxF << std::endl;
+	*/
 
 	//-----init IMGUI------------
 	IMGUI_CHECKVERSION();
@@ -212,11 +251,12 @@ int main()
 		HeightShader.setMat4("view", view);
 		HeightShader.setMat4("model", model);
 
-		// render cube
+		// render heightmap
 		glBindVertexArray(terrainVAO);
+		glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS* rez* rez);
 
 		
-		for (int strip = 0; strip < N_STRIPS; strip++)
+		/*for (int strip = 0; strip < N_STRIPS; strip++)
 		{
 			glDrawElements(
 				GL_TRIANGLE_STRIP,
@@ -224,10 +264,10 @@ int main()
 				GL_UNSIGNED_INT,
 				(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP * strip)
 			);
-		}
+		}*/
 
-		glBindVertexArray(triangleVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		//glBindVertexArray(triangleVAO);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
@@ -278,7 +318,6 @@ void processInput(GLFWwindow* window)
 			glfw_cursor_normal = false;
 		}
 
-		//glfwGetInputMode
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		camera.ProcessKeyboard(FORWARD, deltaTime);

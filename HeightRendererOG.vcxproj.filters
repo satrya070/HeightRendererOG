@@ -91,5 +91,11 @@
     <Text Include="fragment_shader.txt">
       <Filter>Source Files</Filter>
     </Text>
+    <Text Include="tesselation_control_shader.txt">
+      <Filter>Source Files</Filter>
+    </Text>
+    <Text Include="tesselation_evaluation_shader.txt">
+      <Filter>Source Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>
