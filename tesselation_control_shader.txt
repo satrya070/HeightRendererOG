@@ -1,9 +1,11 @@
 #version 400 core
-
 layout(vertices = 4) out;
 
 uniform mat4 model;
 uniform mat4 view;
+
+in vec2 TexCoord[];
+out vec2 TextureCoord[];
 
 void main()
 {
@@ -14,16 +16,17 @@ void main()
 		const float MIN_DISTANCE = 20;
 		const float MAX_DISTANCE = 800;
 
-		gl_TessLevelOuter[0] = 3.0;
-		gl_TessLevelOuter[1] = 7.0;
-		gl_TessLevelOuter[2] = 3.0;
-		gl_TessLevelOuter[3] = 7.0;
+		gl_TessLevelOuter[0] = 5.0;
+		gl_TessLevelOuter[1] = 5.0;
+		gl_TessLevelOuter[2] = 5.0;
+		gl_TessLevelOuter[3] = 5.0;
 
 		gl_TessLevelInner[0] = 5.0;
-		gl_TessLevelOuter[2] = 5.0;
+		gl_TessLevelInner[1] = 5.0;
 
 	}
 
-	// just copy input to output
+	// just copy input patch control points and textureCoords to output
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	TextureCoord[gl_InvocationID] = TexCoord[gl_InvocationID];
 }

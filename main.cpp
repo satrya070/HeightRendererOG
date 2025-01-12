@@ -87,13 +87,8 @@ int main()
 		"vertex_shader.txt", "fragment_shader.txt", "tesselation_control_shader.txt", "tesselation_evaluation_shader.txt"
 	);
 
-	// load map
-	//int cols, rows, nChannels;
-	int width, height, channels;
-	unsigned char *data = stbi_load("images/heightmap_wiki.png", &width, &height, &channels, 0);
-
 	// load all vertices with heighvalue pixels
-	std::vector<float> vertices;
+	//std::vector<float> vertices;
 	/*float yScale = 64.0f / 256.f, yShift = 16.0f;
 	for (int r = 0; r < rows; r++)
 	{
@@ -135,6 +130,35 @@ int main()
 	std::cout << "loaded " << indices.size() << " indices" << std::endl;
 	*/
 
+	std::vector<float> vertices;
+
+	// load the heightmap as texture
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	// wrapping params
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// filtering params
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	// load image
+	int width, height, channels;
+	unsigned char* data = stbi_load("images/heightmap_wiki.png", &width, &height, &channels, 0);
+	if (data) {
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		HeightShader.setInt("heightMap", 0);
+		std::cout << "Heightmap dimension: (" << width << ", " << height << ")." << std::endl;
+	}
+	else
+	{
+		std::cout << "Failed to load" << std::endl;
+	}
+	stbi_image_free(data);
+
 	// generate all coordinates for all patches
 	unsigned int rez = 20;
 	for (unsigned i = 0; i < rez; i++)
@@ -145,21 +169,29 @@ int main()
 			vertices.push_back(-width / 2.0f + width * i / (float)rez); // v.x
 			vertices.push_back(0.0f); // v.y
 			vertices.push_back(-height / 2.0f + height * j / (float)rez); // v.z
+			vertices.push_back(i / (float)rez); // u
+			vertices.push_back(j / (float)rez); // v
 
 			// patch top right
 			vertices.push_back(-width / 2.0f + width * (i+1) / (float)rez); // v.x
 			vertices.push_back(0.0f); // v.y
 			vertices.push_back(-height / 2.0f + height * j / (float)rez); // v.z
+			vertices.push_back((i + 1) / (float)rez);
+			vertices.push_back(j / (float)rez);
 
 			// patch bottom left
 			vertices.push_back(-width / 2.0f + width * i / (float)rez); // v.x
 			vertices.push_back(0.0f); // v.y
 			vertices.push_back(-height / 2.0f + height * (j+1) / (float)rez); // v.z
+			vertices.push_back(i / (float)rez); // u
+			vertices.push_back((j+1) / (float)rez); // v
 
 			// patch bottom right
 			vertices.push_back(-width / 2.0f + width * (i+1) / (float)rez); // v.x
 			vertices.push_back(0.0f); // v.y
 			vertices.push_back(-height / 2.0f + height * (j+1) / (float)rez); // v.z
+			vertices.push_back((i + 1) / (float)rez);
+			vertices.push_back((j + 1) / (float)rez);
 		}
 	}
 	std::cout << "Loaded: " << rez * rez << " patches of 4 control points each" << std::endl;
@@ -174,8 +206,11 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(sizeof(float) * 3));
+	glEnableVertexAttribArray(1);
+
 
 	glPatchParameteri(GL_PATCH_VERTICES, NUM_PATCH_PTS);
 
