@@ -1,4 +1,4 @@
-#version 400 core
+#version 460 core
 layout(vertices = 4) out;
 
 uniform mat4 model;
@@ -16,13 +16,15 @@ void main()
 		const float MIN_DISTANCE = 20;
 		const float MAX_DISTANCE = 800;
 
-		gl_TessLevelOuter[0] = 16;
-		gl_TessLevelOuter[1] = 16;
-		gl_TessLevelOuter[2] = 16;
-		gl_TessLevelOuter[3] = 16;
+		const int tess_level = 64;
 
-		gl_TessLevelInner[0] = 16;
-		gl_TessLevelInner[1] = 16;
+		gl_TessLevelOuter[0] = tess_level;
+		gl_TessLevelOuter[1] = tess_level;
+		gl_TessLevelOuter[2] = tess_level;
+		gl_TessLevelOuter[3] = tess_level;
+
+		gl_TessLevelInner[0] = tess_level;
+		gl_TessLevelInner[1] = tess_level;
 
 	}
 

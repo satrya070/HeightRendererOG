@@ -40,6 +40,21 @@ float lastFrame = 0.0f;
 bool glfw_cursor_normal = false;
 static float CameraMovementSpeed = 150.f;
 
+
+void checkGPU() {
+	const GLubyte* renderer = glGetString(GL_RENDERER);  // GPU renderer
+	const GLubyte* vendor = glGetString(GL_VENDOR);      // GPU vendor
+	const GLubyte* version = glGetString(GL_VERSION);    // OpenGL version
+	const GLubyte* glslVersion = glGetString(GL_SHADING_LANGUAGE_VERSION); // GLSL version
+
+	std::cout << "Renderer: " << renderer << std::endl;
+	std::cout << "Vendor: " << vendor << std::endl;
+	std::cout << "OpenGL Version: " << version << std::endl;
+	std::cout << "GLSL Version: " << glslVersion << std::endl;
+}
+
+
+
 int main()
 {
 	// init glfw
@@ -50,12 +65,13 @@ int main()
 	}
 
 	camera.MovementSpeed = CameraMovementSpeed;
-	stbi_set_flip_vertically_on_load(1);
+	stbi_set_flip_vertically_on_load(0);
 
 	// set openGL version: 4.0 core
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "OpenGL Heightmap Renderer", nullptr, nullptr);
 	if (!window)
@@ -84,8 +100,12 @@ int main()
 
 	// load shader text files
 	Shader HeightShader(
-		"vertex_shader.txt", "fragment_shader.txt", "tesselation_control_shader.txt", "tesselation_evaluation_shader.txt"
+		"./vertex_shader.txt", "./fragment_shader.txt", "tesselation_control_shader.txt", "tesselation_evaluation_shader.txt"
 	);
+
+	std::cout << "opengl version: " << glGetString(GL_VERSION) << std::endl;
+	std::cout << "shading language: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+	checkGPU();
 
 	// load all vertices with heighvalue pixels
 	//std::vector<float> vertices;
@@ -145,8 +165,8 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	// load image
 	int width, height, channels;
-	unsigned char* data;
-	data = stbi_load("images/heightmap_2.png", &width, &height, &channels, STBI_rgb_alpha);
+	// https://stackoverflow.com/questions/23150123/loading-png-with-stb-image-for-opengl-texture-gives-wrong-colors
+	unsigned char* data = stbi_load("images/the_hague_heightmap.png", &width, &height, &channels, STBI_rgb_alpha);
 	if (data) {
 		//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		std::cout << width << ", " << height << std::endl;
@@ -163,7 +183,7 @@ int main()
 	stbi_image_free(data);
 
 	// generate all coordinates for all patches
-	unsigned int rez = 20;
+	unsigned int rez = 30;
 	for (unsigned i = 0; i < rez; i++)
 	{
 		for (unsigned int j = 0; j < rez; j++)
