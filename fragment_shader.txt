@@ -8,6 +8,6 @@ void main()
 	//float h = (height + 16) / 32.0;
 	//float h = (height + 16)/ 0.251 / 255;
 	float h = height / 255.f;
-	FragColor = vec4(h, h, h, 1.0);
-	//FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+	//FragColor = vec4(h, h, h, 1.0);
+	FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }

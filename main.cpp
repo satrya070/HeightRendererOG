@@ -145,8 +145,11 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	// load image
 	int width, height, channels;
-	unsigned char* data = stbi_load("images/heightmap_wiki.png", &width, &height, &channels, 0);
+	unsigned char* data;
+	data = stbi_load("images/heightmap_2.png", &width, &height, &channels, STBI_rgb_alpha);
 	if (data) {
+		//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		std::cout << width << ", " << height << std::endl;
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
