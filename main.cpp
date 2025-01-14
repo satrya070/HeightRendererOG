@@ -65,6 +65,7 @@ int main()
 	}
 
 	camera.MovementSpeed = CameraMovementSpeed;
+	// normally you'd flip it, but I think it works directly as numpy's are the same, or something like that..
 	stbi_set_flip_vertically_on_load(0);
 
 	// set openGL version: 4.0 core
