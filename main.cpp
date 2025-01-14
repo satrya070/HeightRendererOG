@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
+#include <cmath>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -68,7 +69,7 @@ int main()
 	// normally you'd flip it, but I think it works directly as numpy's are the same, or something like that..
 	stbi_set_flip_vertically_on_load(0);
 
-	// set openGL version: 4.0 core
+	// set openGL version: 4.6 core
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -108,49 +109,6 @@ int main()
 	std::cout << "shading language: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 	checkGPU();
 
-	// load all vertices with heighvalue pixels
-	//std::vector<float> vertices;
-	/*float yScale = 64.0f / 256.f, yShift = 16.0f;
-	for (int r = 0; r < rows; r++)
-	{
-		for (int c = 0; c < cols; c++)
-		{
-			// memory index of the height pixel
-			unsigned char* pixelOffset = data + (c + rows * r) * nChannels;
-			// its value
-			if (pixelOffset != nullptr)
-			{
-				unsigned char heightVal = pixelOffset[0];
-
-				// sets origin to middel of (rows, cols)
-				vertices.push_back(-rows / 2.0f + (rows * r / (float)rows)); // X
-				//vertices.push_back((int)heightVal * yScale - yShift); // Y
-				vertices.push_back(heightVal);
-				vertices.push_back(-cols / 2.0f + (cols * c / (float)cols)); // Z
-			}
-		}
-	}
-	stbi_image_free(data);
-
-	std::cout << "loaded: " << vertices.size() / 3 << " vertices" << std::endl;
-
-	// EBO indices
-	std::vector<unsigned int> indices;
-	for (unsigned int r = 0; r < rows - 1; r++)
-	{
-		for (unsigned int c = 0; c < cols; c++)
-		{
-			// go back between top 
-			for (unsigned int k = 0; k < 2; k++)
-			{
-				// picks the top c, then the one below
-				indices.push_back(c + cols * (r + k));
-			}
-		}
-	}
-	std::cout << "loaded " << indices.size() << " indices" << std::endl;
-	*/
-
 	std::vector<float> vertices;
 
 	// load the heightmap as texture
@@ -184,7 +142,7 @@ int main()
 	stbi_image_free(data);
 
 	// generate all coordinates for all patches
-	unsigned int rez = 30;
+	unsigned int rez = 60;
 	for (unsigned i = 0; i < rez; i++)
 	{
 		for (unsigned int j = 0; j < rez; j++)
@@ -244,39 +202,6 @@ int main()
 
 	glBindVertexArray(0);
 
-	/* ------ Triangle VAO ---------- */
-	/*float triangleVertices[] = {
-		-500.f, -500.f, 0.f,
-		500.f, -500.f, 0.f,
-		-500.f, 500.f, 0.f
-	};
-	unsigned int triangleVAO, triangleVBO;
-	glGenVertexArrays(1, &triangleVAO);
-	glBindVertexArray(triangleVAO);
-
-	glGenBuffers(1, &triangleVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, triangleVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	glBindVertexArray(0);*/
-	/* ------------------------------ */
-
-	/*
-	const unsigned int N_STRIPS = rows - 1;
-	const unsigned int N_VERTS_PER_STRIP = cols * 2;
-
-	std::cout << "number of strips: " << N_STRIPS << std::endl;
-	std::cout << "number of triangles: " << N_VERTS_PER_STRIP << std::endl;
-	
-	auto [minIt, maxIt] = std::minmax_element(vertices.begin(), vertices.end());
-	float minF = *minIt;
-	float maxF = *maxIt;
-	std::cout << "min value: " << minF << ", max value: " << maxF << std::endl;
-	*/
-
 	//-----init IMGUI------------
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -285,7 +210,7 @@ int main()
 	ImGui::StyleColorsDark();
 	// bind renderer
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init("#version 330");
+	ImGui_ImplOpenGL3_Init("#version 460");
 
 	// main loop
 	while (!glfwWindowShouldClose(window))
@@ -314,32 +239,24 @@ int main()
 		glBindVertexArray(terrainVAO);
 		glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS* rez* rez);
 
-		
-		/*for (int strip = 0; strip < N_STRIPS; strip++)
-		{
-			glDrawElements(
-				GL_TRIANGLE_STRIP,
-				N_VERTS_PER_STRIP,
-				GL_UNSIGNED_INT,
-				(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP * strip)
-			);
-		}*/
-
-		//glBindVertexArray(triangleVAO);
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+		ImGui::SetNextWindowSize(ImVec2(300, 180));
 		ImGui::Begin("Settings");
-		ImGui::Text("This is a demo window.");
-		if (ImGui::Button("Click Me"))
-			printf("Camera speed: %g!\n", camera.MovementSpeed);
-
+		ImGui::PushItemWidth(120);
 		ImGui::SliderFloat("Camera Movement Speed", &CameraMovementSpeed, 100.f, 200.f);
 		if (camera.MovementSpeed != CameraMovementSpeed)
 			camera.MovementSpeed = CameraMovementSpeed;
+		ImGui::Text("Camera Position & Rotation");
+		ImGui::Text("X: %.2f", camera.Position.x);
+		ImGui::Text("Z: %.2f", camera.Position.z);
+		ImGui::Text("Altitude (meter): %.2f", camera.Position.y);
+
+		ImGui::Text("Yaw: %.2f", std::abs(fmod(camera.Yaw, 360)));
+		ImGui::Text("Pitch: %.2f", camera.Pitch);
 
 		ImGui::End();
 		ImGui::Render();
@@ -358,7 +275,6 @@ int main()
 
 	glfwTerminate();
 
-	//std::cout << "pointer: " << data;
 	return 0;
 }
 
