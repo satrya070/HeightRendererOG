@@ -11,20 +11,40 @@ void main()
 {
 	if(gl_InvocationID == 0)
 	{
-		const int MIN_TESS_LEVEL = 4;
+		// each patch is 30x30 meter real scale
+		// settings for tesselation levels and distances
+		const int MIN_TESS_LEVEL = 16;
 		const int MAX_TESS_LEVEL = 64;
 		const float MIN_DISTANCE = 20;
 		const float MAX_DISTANCE = 800;
 
-		const int tess_level = 64;
+		// transform vertex to camera space space
+		vec4 viewSpace00 = view * model * gl_in[0].gl_Position;  // TL
+		vec4 viewSpace01 = view * model * gl_in[1].gl_Position;  // TR
+		vec4 viewSpace02 = view * model * gl_in[2].gl_Position;  // BL
+		vec4 viewSpace03 = view * model * gl_in[3].gl_Position;  // BR
 
-		gl_TessLevelOuter[0] = tess_level;
-		gl_TessLevelOuter[1] = tess_level;
-		gl_TessLevelOuter[2] = tess_level;
-		gl_TessLevelOuter[3] = tess_level;
+		// normalize patch viewspace coords based on distance to set camera distances
+		float distance00 = clamp((abs(viewSpace00.z) - MIN_DISTANCE) / (MAX_DISTANCE - MIN_DISTANCE), 0.0, 1.0);
+		float distance01 = clamp((abs(viewSpace01.z) - MIN_DISTANCE) / (MAX_DISTANCE - MIN_DISTANCE), 0.0, 1.0);
+		float distance02 = clamp((abs(viewSpace02.z) - MIN_DISTANCE) / (MAX_DISTANCE - MIN_DISTANCE), 0.0, 1.0);
+		float distance03 = clamp((abs(viewSpace03.z) - MIN_DISTANCE) / (MAX_DISTANCE - MIN_DISTANCE), 0.0, 1.0);
 
-		gl_TessLevelInner[0] = tess_level;
-		gl_TessLevelInner[1] = tess_level;
+		// interpolate tesselation level based on distance
+		float tessLevel00 = mix(MAX_TESS_LEVEL, MIN_TESS_LEVEL, min(distance00, distance02)); // length left border
+		float tessLevel01 = mix(MAX_TESS_LEVEL, MIN_TESS_LEVEL, min(distance00, distance02)); // length bottom border
+		float tessLevel02 = mix(MAX_TESS_LEVEL, MIN_TESS_LEVEL, min(distance01, distance03)); // length right border
+		float tessLevel03 = mix(MAX_TESS_LEVEL, MIN_TESS_LEVEL, min(distance01, distance03)); // length top border
+
+		// const int tess_level = 64;
+
+		gl_TessLevelOuter[0] = tessLevel00;
+		gl_TessLevelOuter[1] = tessLevel01;
+		gl_TessLevelOuter[2] = tessLevel02;
+		gl_TessLevelOuter[3] = tessLevel03;
+
+		gl_TessLevelInner[0] = max(tessLevel01, tessLevel03);
+		gl_TessLevelInner[1] = max(tessLevel00, tessLevel02);
 
 	}
 

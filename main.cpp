@@ -142,7 +142,7 @@ int main()
 	stbi_image_free(data);
 
 	// generate all coordinates for all patches
-	unsigned int rez = 60;
+	unsigned int rez = 50;
 	for (unsigned i = 0; i < rez; i++)
 	{
 		for (unsigned int j = 0; j < rez; j++)
