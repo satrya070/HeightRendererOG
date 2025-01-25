@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
+#include <cmath>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -23,6 +24,7 @@ void processInput(GLFWwindow* window);
 
 const unsigned int WIDTH = 1600;
 const unsigned int HEIGHT = 1200;
+const unsigned int NUM_PATCH_PTS = 4;
 
 Camera camera(
 	glm::vec3(67.f, 627.f, 169.f),
@@ -39,6 +41,21 @@ float lastFrame = 0.0f;
 bool glfw_cursor_normal = false;
 static float CameraMovementSpeed = 150.f;
 
+
+void checkGPU() {
+	const GLubyte* renderer = glGetString(GL_RENDERER);  // GPU renderer
+	const GLubyte* vendor = glGetString(GL_VENDOR);      // GPU vendor
+	const GLubyte* version = glGetString(GL_VERSION);    // OpenGL version
+	const GLubyte* glslVersion = glGetString(GL_SHADING_LANGUAGE_VERSION); // GLSL version
+
+	std::cout << "Renderer: " << renderer << std::endl;
+	std::cout << "Vendor: " << vendor << std::endl;
+	std::cout << "OpenGL Version: " << version << std::endl;
+	std::cout << "GLSL Version: " << glslVersion << std::endl;
+}
+
+
+
 int main()
 {
 	// init glfw
@@ -49,12 +66,14 @@ int main()
 	}
 
 	camera.MovementSpeed = CameraMovementSpeed;
-	stbi_set_flip_vertically_on_load(1);
+	// normally you'd flip it, but I think it works directly as numpy's are the same, or something like that..
+	stbi_set_flip_vertically_on_load(0);
 
-	// set openGL version: 4.0 core
+	// set openGL version: 4.6 core
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "OpenGL Heightmap Renderer", nullptr, nullptr);
 	if (!window)
@@ -81,54 +100,84 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	// 
-	Shader HeightShader("vertex_shader.txt", "fragment_shader.txt");
+	// load shader text files
+	Shader HeightShader(
+		"./vertex_shader.txt", "./fragment_shader.txt", "tesselation_control_shader.txt", "tesselation_evaluation_shader.txt"
+	);
 
-	// load map
-	int cols, rows, nChannels;
-	unsigned char *data = stbi_load("images/the_hague_heightmap.png", &cols, &rows, &nChannels, 0);
+	std::cout << "opengl version: " << glGetString(GL_VERSION) << std::endl;
+	std::cout << "shading language: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+	checkGPU();
 
-	// load all vertices with heighvalue pixels
 	std::vector<float> vertices;
-	float yScale = 64.0f / 256.f, yShift = 16.0f;
-	for (int r = 0; r < rows; r++)
-	{
-		for (int c = 0; c < cols; c++)
-		{
-			// memory index of the height pixel
-			unsigned char* pixelOffset = data + (c + rows * r) * nChannels;
-			// its value
-			if (pixelOffset != nullptr)
-			{
-				unsigned char heightVal = pixelOffset[0];
 
-				// sets origin to middel of (rows, cols)
-				vertices.push_back(-rows / 2.0f + (rows * r / (float)rows)); // X
-				//vertices.push_back((int)heightVal * yScale - yShift); // Y
-				vertices.push_back(heightVal);
-				vertices.push_back(-cols / 2.0f + (cols * c / (float)cols)); // Z
-			}
-		}
+	// load the heightmap as texture
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	// wrapping params
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// filtering params
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	// load image
+	int width, height, channels;
+	// https://stackoverflow.com/questions/23150123/loading-png-with-stb-image-for-opengl-texture-gives-wrong-colors
+	unsigned char* data = stbi_load("images/the_hague_heightmap.png", &width, &height, &channels, STBI_rgb_alpha);
+	if (data) {
+		//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		std::cout << width << ", " << height << std::endl;
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		HeightShader.setInt("heightMap", 0);
+		std::cout << "Heightmap dimension: (" << width << ", " << height << ")." << std::endl;
+	}
+	else
+	{
+		std::cout << "Failed to load" << std::endl;
 	}
 	stbi_image_free(data);
 
-	std::cout << "loaded: " << vertices.size() / 3 << " vertices" << std::endl;
-
-	// EBO indices
-	std::vector<unsigned int> indices;
-	for (unsigned int r = 0; r < rows - 1; r++)
+	// generate all coordinates for all patches
+	unsigned int rez = 50;
+	for (unsigned i = 0; i < rez; i++)
 	{
-		for (unsigned int c = 0; c < cols; c++)
+		for (unsigned int j = 0; j < rez; j++)
 		{
-			// go back between top 
-			for (unsigned int k = 0; k < 2; k++)
-			{
-				// picks the top c, then the one below
-				indices.push_back(c + cols * (r + k));
-			}
+			// patch top left
+			vertices.push_back(-width / 2.0f + width * i / (float)rez); // v.x
+			vertices.push_back(0.0f); // v.y
+			vertices.push_back(-height / 2.0f + height * j / (float)rez); // v.z
+			vertices.push_back(i / (float)rez); // u
+			vertices.push_back(j / (float)rez); // v
+
+			// patch top right
+			vertices.push_back(-width / 2.0f + width * (i+1) / (float)rez); // v.x
+			vertices.push_back(0.0f); // v.y
+			vertices.push_back(-height / 2.0f + height * j / (float)rez); // v.z
+			vertices.push_back((i + 1) / (float)rez);
+			vertices.push_back(j / (float)rez);
+
+			// patch bottom left
+			vertices.push_back(-width / 2.0f + width * i / (float)rez); // v.x
+			vertices.push_back(0.0f); // v.y
+			vertices.push_back(-height / 2.0f + height * (j+1) / (float)rez); // v.z
+			vertices.push_back(i / (float)rez); // u
+			vertices.push_back((j+1) / (float)rez); // v
+
+			// patch bottom right
+			vertices.push_back(-width / 2.0f + width * (i+1) / (float)rez); // v.x
+			vertices.push_back(0.0f); // v.y
+			vertices.push_back(-height / 2.0f + height * (j+1) / (float)rez); // v.z
+			vertices.push_back((i + 1) / (float)rez);
+			vertices.push_back((j + 1) / (float)rez);
 		}
 	}
-	std::cout << "loaded " << indices.size() << " indices" << std::endl;
+	std::cout << "Loaded: " << rez * rez << " patches of 4 control points each" << std::endl;
+	std::cout << "Processing " << rez * rez * 4 << " vertices in the vertex shader" << ::std::endl;
 
 	// VAO
 	GLuint terrainVAO, terrainVBO, terrainEBO;
@@ -139,45 +188,19 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(sizeof(float) * 3));
+	glEnableVertexAttribArray(1);
 
-	glGenBuffers(1, &terrainEBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+
+	glPatchParameteri(GL_PATCH_VERTICES, NUM_PATCH_PTS);
+
+	//glGenBuffers(1, &terrainEBO);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
 	glBindVertexArray(0);
-
-	/* ------ Triangle VAO ---------- */
-	float triangleVertices[] = {
-		-500.f, -500.f, 0.f,
-		500.f, -500.f, 0.f,
-		-500.f, 500.f, 0.f
-	};
-	unsigned int triangleVAO, triangleVBO;
-	glGenVertexArrays(1, &triangleVAO);
-	glBindVertexArray(triangleVAO);
-
-	glGenBuffers(1, &triangleVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, triangleVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	glBindVertexArray(0);
-	/* ------------------------------ */
-
-	const unsigned int N_STRIPS = rows - 1;
-	const unsigned int N_VERTS_PER_STRIP = cols * 2;
-
-	std::cout << "number of strips: " << N_STRIPS << std::endl;
-	std::cout << "number of triangles: " << N_VERTS_PER_STRIP << std::endl;
-	
-	auto [minIt, maxIt] = std::minmax_element(vertices.begin(), vertices.end());
-	float minF = *minIt;
-	float maxF = *maxIt;
-	std::cout << "min value: " << minF << ", max value: " << maxF << std::endl;
 
 	//-----init IMGUI------------
 	IMGUI_CHECKVERSION();
@@ -187,7 +210,7 @@ int main()
 	ImGui::StyleColorsDark();
 	// bind renderer
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init("#version 330");
+	ImGui_ImplOpenGL3_Init("#version 460");
 
 	// main loop
 	while (!glfwWindowShouldClose(window))
@@ -212,35 +235,28 @@ int main()
 		HeightShader.setMat4("view", view);
 		HeightShader.setMat4("model", model);
 
-		// render cube
+		// render heightmap
 		glBindVertexArray(terrainVAO);
+		glDrawArrays(GL_PATCHES, 0, NUM_PATCH_PTS* rez* rez);
 
-		
-		for (int strip = 0; strip < N_STRIPS; strip++)
-		{
-			glDrawElements(
-				GL_TRIANGLE_STRIP,
-				N_VERTS_PER_STRIP,
-				GL_UNSIGNED_INT,
-				(void*)(sizeof(unsigned int) * N_VERTS_PER_STRIP * strip)
-			);
-		}
-
-		glBindVertexArray(triangleVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+		ImGui::SetNextWindowSize(ImVec2(300, 180));
 		ImGui::Begin("Settings");
-		ImGui::Text("This is a demo window.");
-		if (ImGui::Button("Click Me"))
-			printf("Camera speed: %g!\n", camera.MovementSpeed);
-
+		ImGui::PushItemWidth(120);
 		ImGui::SliderFloat("Camera Movement Speed", &CameraMovementSpeed, 100.f, 200.f);
 		if (camera.MovementSpeed != CameraMovementSpeed)
 			camera.MovementSpeed = CameraMovementSpeed;
+		ImGui::Text("Camera Position & Rotation");
+		ImGui::Text("X: %.2f", camera.Position.x);
+		ImGui::Text("Z: %.2f", camera.Position.z);
+		ImGui::Text("Altitude (meter): %.2f", camera.Position.y);
+
+		ImGui::Text("Yaw: %.2f", std::abs(fmod(camera.Yaw, 360)));
+		ImGui::Text("Pitch: %.2f", camera.Pitch);
 
 		ImGui::End();
 		ImGui::Render();
@@ -259,7 +275,6 @@ int main()
 
 	glfwTerminate();
 
-	//std::cout << "pointer: " << data;
 	return 0;
 }
 
@@ -278,7 +293,6 @@ void processInput(GLFWwindow* window)
 			glfw_cursor_normal = false;
 		}
 
-		//glfwGetInputMode
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		camera.ProcessKeyboard(FORWARD, deltaTime);

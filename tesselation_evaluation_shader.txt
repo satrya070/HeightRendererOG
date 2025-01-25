@@ -1,0 +1,59 @@
+#version 460 core
+layout(quads, fractional_odd_spacing, ccw) in;
+
+uniform sampler2D heightMap;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+in vec2 TextureCoord[];
+out float height;
+
+void main()
+{
+	// for quads, so this is x,y of generated vertex
+	float u = gl_TessCoord.x;
+	float v = gl_TessCoord.y;
+
+	// texture coord is same as in gl_position(patch)
+	vec2 t00 = TextureCoord[0];  //tl
+	vec2 t01 = TextureCoord[1];  //tr
+	vec2 t02 = TextureCoord[2];  //bl
+	vec2 t03 = TextureCoord[3];  //br
+
+	vec2 t0 = (t01 - t00) * u + t00; // top u intersect
+	vec2 t1 = (t03 - t02) * u + t02; // bottom u intersect
+	vec2 texCoord = (t1 - t0) * v + t0; // v intersect on vertical line
+
+	height = texture(heightMap, texCoord).y * 163.0 - 5.199;;
+
+	// ----- vertex positioning -----
+	vec4 p00 = gl_in[0].gl_Position; // tl
+	vec4 p01 = gl_in[1].gl_Position; // tr
+	vec4 p02 = gl_in[2].gl_Position; // bl
+	vec4 p03 = gl_in[3].gl_Position; // br
+
+	// get the up vector
+	vec4 xVec = p01 - p00;
+	vec4 zVec = p02 - p00;
+	vec4 normal = normalize(vec4(cross(zVec.xyz, xVec.xyz), 0));
+
+	vec4 p0 = (p01 - p00) * u + p00;
+	vec4 p1 = (p03 - p02) * u + p02;
+	vec4 p = (p1 - p0) * v + p0 + normal * height;
+
+	gl_Position = projection * view * model * p;
+
+
+	// initial--------- experi
+	//height = texture(heightMap, texCoord).y * 163.0 - 5.199;
+
+	// get bottom slicer
+	//vec4 p1 = mix(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_TessCoord.x);
+	// get top slicer
+	//vec4 p2 = mix(gl_in[2].gl_Position, gl_in[3].gl_Position, gl_TessCoord.x);
+
+	// of the vertical slice get position of the y
+	//gl_Position = mix(p1, p2, gl_TessCoord.y);
+
+}

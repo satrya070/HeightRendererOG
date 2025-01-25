@@ -1,4 +1,4 @@
-#version 400 core
+#version 460 core
 out vec4 FragColor;
 
 in float height;
@@ -7,7 +7,7 @@ void main()
 {
 	//float h = (height + 16) / 32.0;
 	//float h = (height + 16)/ 0.251 / 255;
-	float h = height / 255.f;
+	float h = (height + 5.199) / 163.0;
 	FragColor = vec4(h, h, h, 1.0);
 	//FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }
